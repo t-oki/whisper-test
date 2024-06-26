@@ -124,28 +124,39 @@ func invoke(ctx context.Context, brc *bedrockruntime.Client, model string) error
 	fmt.Printf("=== Start %s ===", model)
 	fmt.Println("")
 
-	transcriptions, err := os.ReadDir(transcriptionPath)
+	promptFile, err := os.Open("prompt.txt")
+	if err != nil {
+		return err
+	}
+	defer promptFile.Close()
+	promptBytes, err := io.ReadAll(promptFile)
+	if err != nil {
+		return err
+	}
+	fmt.Println(string(promptBytes))
+
+	transcriptionFiles, err := os.ReadDir(transcriptionPath)
 	if err != nil {
 		return err
 	}
 
-	for _, transcript := range transcriptions {
+	for _, transcriptionFile := range transcriptionFiles {
 		fmt.Println("=====================================")
-		fmt.Println(transcript.Name())
+		fmt.Println(transcriptionFile.Name())
 
-		promptFile, err := os.Open("prompt.txt")
+		transcrptionFile, err := os.Open(transcriptionPath + transcriptionFile.Name())
 		if err != nil {
 			return err
 		}
-		defer promptFile.Close()
-		b, err := io.ReadAll(promptFile)
+		defer transcrptionFile.Close()
+		transcriptionBytes, err := io.ReadAll(transcrptionFile)
 		if err != nil {
 			return err
 		}
 
 		prompt := fmt.Sprintf(`%s
-%s`, b, transcript)
-		fmt.Println(prompt)
+%s`, promptBytes, transcriptionBytes)
+		fmt.Println(string(transcriptionBytes))
 		payload := Request{
 			AnthropicVersion: "bedrock-2023-05-31",
 			MaxTokens:        1000,
