@@ -25,7 +25,7 @@ var m map[string]string = map[string]string{
 	"Sonnet": "anthropic.claude-3-sonnet-20240229-v1:0",
 }
 
-var audioPath string = "samples/"
+var audioPath string = "audios/"
 var transcriptionPath string = "transcriptions/"
 
 func main() {
@@ -234,11 +234,36 @@ func transcribeAudio(audioFilePath string) (string, error) {
 	start := time.Now()
 
 	cmd := exec.Command("python3", "whisper_script.py", audioFilePath)
-	output, err := cmd.Output()
+	stdout, err := cmd.StdoutPipe()
 	if err != nil {
-		return "", err
+		fmt.Printf("failed to get stdout pipe: %v/n", err)
+	}
+	stderr, err := cmd.StderrPipe()
+	if err != nil {
+		fmt.Printf("failed to get stderr pipe: %v/n", err)
 	}
 
+	if err := cmd.Start(); err != nil {
+		fmt.Printf("failed to start command: %v/n", err)
+	}
+
+	output, err := io.ReadAll(stdout)
+	if err != nil {
+		fmt.Printf("failed to read stdout: %v/n", err)
+	}
+	errs, err := io.ReadAll(stderr)
+	if err != nil {
+		fmt.Printf("failed to read stderr: %v/n", err)
+	}
+
+	fmt.Printf("output:\n%s\n", output)
+	if len(errs) > 0 {
+		fmt.Printf("Errors:\n%s\n", errs)
+	}
+
+	if err := cmd.Wait(); err != nil {
+		fmt.Printf("failed to wait command: %v/n", err)
+	}
 	fmt.Printf("Process time: %s\n", time.Since(start))
 
 	var result TranscriptionResult
